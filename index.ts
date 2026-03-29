@@ -1,4 +1,5 @@
-// Interface - o molde do Livro
+import * as readline from "readline";
+
 interface Livro {
   id: number;
   titulo: string;
@@ -7,53 +8,108 @@ interface Livro {
   disponivel: boolean;
 }
 
-// Array que vai guardar os livros
 const livros: Livro[] = [];
+let proximoId = 1;
 
-// Função 1: Adicionar um livro
-function adicionarLivro(livro: Livro): void {
-  livros.push(livro);
-  console.log(`Livro "${livro.titulo}" adicionado com sucesso!`);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+function pergunta(texto: string): Promise<string> {
+  return new Promise((resolve) => rl.question(texto, resolve));
 }
 
-// Função 2: Listar todos os livros
 function listarLivros(): void {
+  if (livros.length === 0) {
+    console.log("\nNenhum livro cadastrado ainda.\n");
+    return;
+  }
   console.log("\n📚 Lista de Livros:");
   livros.forEach((livro) => {
     console.log(`
-    ID: ${livro.id}
-    Título: ${livro.titulo}
-    Autor: ${livro.autor}
-    Ano: ${livro.ano}
-    Disponível: ${livro.disponivel ? "Sim" : "Não"}
+  ID: ${livro.id}
+  Título: ${livro.titulo}
+  Autor: ${livro.autor}
+  Ano: ${livro.ano}
+  Disponível: ${livro.disponivel ? "✅ Sim" : "❌ Não"}
     `);
   });
 }
 
-// Função 3 (Extra): Emprestar um livro
-function emprestarLivro(id: number): void {
-  const livro = livros.find((l) => l.id === id);
+async function adicionarLivro(): Promise<void> {
+  console.log("\n➕ Adicionar Livro:");
+  const titulo = await pergunta("Título: ");
+  const autor = await pergunta("Autor: ");
+  const ano = await pergunta("Ano: ");
+
+  const novoLivro: Livro = {
+    id: proximoId++,
+    titulo,
+    autor,
+    ano: Number(ano),
+    disponivel: true,
+  };
+
+  livros.push(novoLivro);
+  console.log(`\n✅ Livro "${titulo}" adicionado com sucesso!`);
+}
+
+async function emprestarLivro(): Promise<void> {
+  if (livros.length === 0) {
+    console.log("\nNenhum livro cadastrado ainda.\n");
+    return;
+  }
+
+  listarLivros();
+  const id = await pergunta("Digite o ID do livro para emprestar: ");
+  const livro = livros.find((l) => l.id === Number(id));
 
   if (!livro) {
-    console.log(`Livro com ID ${id} não encontrado.`);
+    console.log("\n❌ Livro não encontrado.");
     return;
   }
 
   if (!livro.disponivel) {
-    console.log(`O livro "${livro.titulo}" já está emprestado.`);
+    console.log(`\n❌ O livro "${livro.titulo}" já está emprestado.`);
     return;
   }
 
   livro.disponivel = false;
-  console.log(`Livro "${livro.titulo}" emprestado com sucesso!`);
+  console.log(`\n✅ Livro "${livro.titulo}" emprestado com sucesso!`);
 }
 
-// Testando tudo
-adicionarLivro({ id: 1, titulo: "Dom Casmurro", autor: "Machado de Assis", ano: 1899, disponivel: true });
-adicionarLivro({ id: 2, titulo: "O Senhor dos Anéis", autor: "J.R.R. Tolkien", ano: 1954, disponivel: true });
+async function menu(): Promise<void> {
+  while (true) {
+    console.log("\n=============================");
+    console.log("      📚 Gerenciador de Livros");
+    console.log("=============================");
+    console.log("1 - Adicionar livro");
+    console.log("2 - Listar livros");
+    console.log("3 - Emprestar livro");
+    console.log("0 - Sair");
+    console.log("=============================");
 
-listarLivros();
+    const opcao = await pergunta("Escolha uma opção: ");
 
-emprestarLivro(1);
+    switch (opcao) {
+      case "1":
+        await adicionarLivro();
+        break;
+      case "2":
+        listarLivros();
+        break;
+      case "3":
+        await emprestarLivro();
+        break;
+      case "0":
+        console.log("\nAté mais! 👋\n");
+        rl.close();
+        return;
+      default:
+        console.log("\n❌ Opção inválida. Tente novamente.");
+    }
+  }
+}
 
-listarLivros();
+menu();
